@@ -1,3 +1,4 @@
+require("dotenv").config;
 exports.config = {
   //
   // ====================
@@ -19,8 +20,8 @@ exports.config = {
   specs: ["./src/features/**/*.feature"],
 
   suites: {
-    account: ["./test/specs/account.test.js"],
-    login: ["./test/specs/login.test.js"],
+    account: ["./src/features/**/account.feature"],
+    login: ["./src/features/**/login.feature"],
   },
 
   // Patterns to exclude.
@@ -162,7 +163,7 @@ exports.config = {
     failFast: false,
     // <boolean> Enable this config to treat undefined definitions as
     // warnings
-    ignoreUndefinedDefinitions: false,
+    ignoreUndefinedDefinitions: true,
     // <string[]> ("extension:module") require files with the given
     // EXTENSION after requiring MODULE (repeatable)
     name: [],
@@ -174,9 +175,10 @@ exports.config = {
     profile: [],
     // <string[]> (file/dir) require files before executing features
     require: [
-      //   "./src/steps/given.js",
-      //   "./src/steps/then.js",
-      //   "./src/steps/when.js",
+      "./src/steps/**/given.js",
+      "./src/steps/**/then.js",
+      "./src/steps/**/when.js",
+      "./src/support/hooks.js",
       // Or search a (sub)folder for JS files with a wildcard
       // works since version 1.1 of the wdio-cucumber-framework
       // './src/**/*.js',
@@ -189,6 +191,7 @@ exports.config = {
     // tags matching the expression, see
     // https://docs.cucumber.io/tag-expressions/
     tagExpression: "not @Pending",
+    //tagExpression: `@regression or @${process.env.ENVIRONMENT}`
     // <boolean> add cucumber tags to feature or scenario name
     tagsInTitle: false,
     // <number> timeout for step definitions
@@ -198,10 +201,11 @@ exports.config = {
   // =====
   // Hooks
   // =====
-  // WebdriverIO provides several hooks you can use to interfere with the test process in order to enhance
-  // it and to build services around it. You can either apply a single function or an array of
-  // methods to it. If one of them returns with a promise, WebdriverIO will wait until that promise got
-  // resolved to continue.
+  // WebdriverIO provides a several hooks you can use to interfere the test process in order to
+  // enhance it and build services around it. You can either apply a single function to it or
+  // an array of methods. If one of them returns with a promise,
+  // WebdriverIO will wait until that promise is resolved to continue.
+  //
   /**
    * Gets executed once before all workers get launched.
    * @param {Object} config wdio configuration object
@@ -210,52 +214,61 @@ exports.config = {
   // onPrepare: function (config, capabilities) {
   // },
   /**
-   * Gets executed before a worker process is spawned and can be used to initialise specific service
+   * Gets executed before a worker process is spawned & can be used to initialize specific service
    * for that worker as well as modify runtime environments in an async fashion.
-   * @param  {String} cid      capability id (e.g 0-0)
-   * @param  {[type]} caps     object containing capabilities for session that will be spawn in the worker
-   * @param  {[type]} specs    specs to be run in the worker process
-   * @param  {[type]} args     object that will be merged with the main configuration once worker is initialised
+   * @param  {String} cid    capability id (e.g 0-0)
+   * @param  {[type]} caps   object containing capabilities for session
+   * @param  {[type]} specs  specs to be run in the worker process
+   * @param  {[type]} args   object that will be merged with the main
+   *                         configuration once worker is initialized
    * @param  {[type]} execArgv list of string arguments passed to the worker process
    */
   // onWorkerStart: function (cid, caps, specs, args, execArgv) {
   // },
   /**
-   * Gets executed just before initialising the webdriver session and test framework. It allows you
-   * to manipulate configurations depending on the capability or spec.
+   * Gets executed just before initializing the webdriver session and test framework.
+   * It allows you to manipulate configurations depending on the capability or spec.
    * @param {Object} config wdio configuration object
    * @param {Array.<Object>} capabilities list of capabilities details
    * @param {Array.<String>} specs List of spec file paths that are to be run
    */
   // beforeSession: function (config, capabilities, specs) {
   // },
-  beforeSession: function (config, capabilities, specs) {
-    require("@babel/register");
-  },
   /**
    * Gets executed before test execution begins. At this point you can access to all global
    * variables like `browser`. It is the perfect place to define custom commands.
    * @param {Array.<Object>} capabilities list of capabilities details
-   * @param {Array.<String>} specs        List of spec file paths that are to be run
-   * @param {Object}         browser      instance of created browser/device session
+   * @param {Array.<String>} specs List of spec file paths that are to be run
    */
+  // before: function (capabilities, specs) {
+  // },
   before: function (capabilities, specs) {
     // browser.setWindowSize(1280, 800);
     // browser.windowHandleFullscreen();
     browser.maximizeWindow();
   },
   /**
-   * Runs before a WebdriverIO command gets executed.
-   * @param {String} commandName hook command name
-   * @param {Array} args arguments that command would receive
-   */
-  // beforeCommand: function (commandName, args) {
-  // },
-  /**
-   * Hook that gets executed before the suite starts
+   * Gets executed before the suite starts.
    * @param {Object} suite suite details
    */
   // beforeSuite: function (suite) {
+  // },
+  /**
+   * This hook gets executed _before_ every hook within the suite starts.
+   * (For example, this runs before calling `before`, `beforeEach`, `after`)
+   *
+   * (`stepData` and `world` are Cucumber-specific.)
+   *
+   */
+  // beforeHook: function (test, context, stepData, world) {
+  // },
+  /**
+   * Hook that gets executed _after_ every hook within the suite ends.
+   * (For example, this runs after calling `before`, `beforeEach`, `after`, `afterEach` in Mocha.)
+   *
+   * (`stepData` and `world` are Cucumber-specific.)
+   */
+  // afterHook:function(test,context,{error, result, duration, passed, retries}, stepData,world) {
   // },
   /**
    * Function to be executed before a test (in Mocha/Jasmine) starts.
@@ -263,44 +276,31 @@ exports.config = {
   // beforeTest: function (test, context) {
   // },
   /**
-   * Hook that gets executed _before_ a hook within the suite starts (e.g. runs before calling
-   * beforeEach in Mocha)
+   * Runs before a WebdriverIO command is executed.
+   * @param {String} commandName hook command name
+   * @param {Array} args arguments that the command would receive
    */
-  // beforeHook: function (test, context) {
-  // },
-  /**
-   * Hook that gets executed _after_ a hook within the suite starts (e.g. runs after calling
-   * afterEach in Mocha)
-   */
-  // afterHook: function (test, context, { error, result, duration, passed, retries }) {
-  // },
-  /**
-   * Function to be executed after a test (in Mocha/Jasmine).
-   */
-  afterTest: function (
-    test,
-    context,
-    { error, result, duration, passed, retries }
-  ) {
-    if (error) {
-      // browser.takeScreenshot();
-    }
-  },
-
-  /**
-   * Hook that gets executed after the suite has ended
-   * @param {Object} suite suite details
-   */
-  // afterSuite: function (suite) {
+  // beforeCommand: function (commandName, args) {
   // },
   /**
    * Runs after a WebdriverIO command gets executed
    * @param {String} commandName hook command name
    * @param {Array} args arguments that command would receive
    * @param {Number} result 0 - command success, 1 - command error
-   * @param {Object} error error object if any
+   * @param {Object} error error object, if any
    */
   // afterCommand: function (commandName, args, result, error) {
+  // },
+  /**
+   * Function to be executed after a test (in Mocha/Jasmine)
+   */
+  // afterTest: function (test, context, {error, result, duration, passed, retries}) {
+  // },
+  /**
+   * Hook that gets executed after the suite has ended.
+   * @param {Object} suite suite details
+   */
+  // afterSuite: function (suite) {
   // },
   /**
    * Gets executed after all tests are done. You still have access to all global variables from
@@ -320,20 +320,36 @@ exports.config = {
   // afterSession: function (config, capabilities, specs) {
   // },
   /**
-   * Gets executed after all workers got shut down and the process is about to exit. An error
-   * thrown in the onComplete hook will result in the test run failing.
+   * Gets executed after all workers have shut down and the process is about to exit.
+   * An error thrown in the `onComplete` hook will result in the test run failing.
    * @param {Object} exitCode 0 - success, 1 - fail
    * @param {Object} config wdio configuration object
    * @param {Array.<Object>} capabilities list of capabilities details
    * @param {<Object>} results object containing test results
    */
-  // onComplete: function(exitCode, config, capabilities, results) {
+  // onComplete: function (exitCode, config, capabilities, results) {
   // },
   /**
    * Gets executed when a refresh happens.
    * @param {String} oldSessionId session ID of the old session
    * @param {String} newSessionId session ID of the new session
    */
-  //onReload: function(oldSessionId, newSessionId) {
-  //}
+  // onReload: function (oldSessionId, newSessionId) {
+  // },
+  /**
+   * Cucumber-specific hooks
+   */
+  // beforeFeature: function (uri, feature, scenarios) {
+  // },
+  beforeScenario: function (uri, feature, scenario, sourceLocation) {
+    browser.reloadSession();
+  },
+  // beforeStep: function ({uri, feature, step}, context) {
+  // },
+  // afterStep: function ({uri, feature, step}, context, {error, result, duration, passed}) {
+  // },
+  // afterScenario: function (uri, feature, scenario, result, sourceLocation) {
+  // },
+  // afterFeature: function (uri, feature, scenarios) {
+  // },
 };
